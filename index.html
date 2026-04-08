@@ -1,67 +1,105 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dashboard</title>
+<meta charset="UTF-8">
+<title>🤡 Scanner Dashboard</title>
+
 <style>
-body{background:#0b0f14;color:white;font-family:sans-serif;text-align:center}
-.tab{display:none}
-.active{display:block}
+body{margin:0;background:#0b0f14;color:#e0e0e0;font-family:'Segoe UI'}
+
+header{text-align:center;padding:20px;font-size:30px;color:#fff;text-shadow:0 0 15px #00ccff}
+
+nav{display:flex;justify-content:center;gap:10px}
+nav button{padding:10px 18px;background:#161b22;border:none;border-radius:8px;color:#ccc;cursor:pointer}
+nav button:hover{background:#222}
+
+.tab{display:none;padding:15px}
+.tab.active{display:block}
+
+#login{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center}
+
+input{padding:10px;border-radius:6px;border:none;margin:5px}
+
+.glow{
+box-shadow:0 0 20px #00ccff;
+animation:glow 2s infinite alternate;
+}
+
+@keyframes glow{
+from{box-shadow:0 0 10px #00ccff}
+to{box-shadow:0 0 30px #00ccff}
+}
+
+.card{
+background:#14181f;
+border-radius:10px;
+padding:10px;
+margin:10px;
+}
+
+#dashboard-wrapper{display:none}
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
 <div id="login">
-<h2>Enter Key</h2>
+<h1>🔐 Enter Key</h1>
 <input id="keyInput">
 <button onclick="login()">Login</button>
 <p id="error"></p>
 </div>
 
-<div id="main" style="display:none">
+<!-- MAIN -->
+<div id="dashboard-wrapper">
 
-<button onclick="show('normal')">Normal</button>
-<button onclick="show('prio')">Priority</button>
-<button onclick="show('keys')">Keys</button>
+<header>🤡 Scanner Dashboard</header>
 
-<div id="normal" class="tab active"><h2>Normal Dashboard</h2></div>
-<div id="prio" class="tab"><h2>Priority Dashboard</h2></div>
+<nav>
+<button id="btn-normal" onclick="show('normal')">Dashboard</button>
+<button id="btn-prio" onclick="show('prio')">Priority</button>
+<button id="btn-keys" onclick="show('keys')">Key Panel</button>
+</nav>
+
+<div id="normal" class="tab active">
+<h2>Normal Scanner</h2>
+<div class="card">Waiting for detections...</div>
+</div>
+
+<div id="prio" class="tab">
+<h2>🔥 Priority Scanner</h2>
+<div class="card glow">High value detections here...</div>
+</div>
 
 <div id="keys" class="tab">
-<h2>Generate Key</h2>
+<h2>🔑 Key Generator</h2>
 
 <select id="type">
 <option value="normal">Normal</option>
 <option value="priority">Priority</option>
 </select>
 
-<input id="expire" placeholder="1m / 1h">
-<br>
+<input id="expire" placeholder="1h / 5h / 1m">
 
-<button onclick="generate()">Generate</button>
+<button onclick="generate()">Generate Key</button>
 
-<div id="status"></div>
 <div id="list"></div>
-
 </div>
 
 </div>
 
 <script>
 
-const URL = "https://wfqydktbiarmlogkgniu.supabase.co";
-const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcXlka3RiaWFybWxvZ2tnbml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTE0MzYsImV4cCI6MjA5MTE2NzQzNn0.nfqeTkKMKDe6uLmypFXJ12HKw96ZBPeZuVKqNx5ikwY";
+const URL="https://wfqydktbiarmlogkgniu.supabase.co";
+const KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcXlka3RiaWFybWxvZ2tnbml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTE0MzYsImV4cCI6MjA5MTE2NzQzNn0.nfqeTkKMKDe6uLmypFXJ12HKw96ZBPeZuVKqNx5ikwY";
 
-const ADMIN = "mysecretadmin123";
+const ADMIN="mysecretadmin123";
 
-let userType = "normal";
-
-// create key
 function makeKey(){
 return "brainrot-"+Math.random().toString(36).substring(2,10);
 }
 
-// expire
 function parse(t){
 if(!t)return null;
 let n=parseInt(t);
@@ -71,12 +109,11 @@ if(t.includes("h"))return Date.now()+n*3600000;
 
 // 🔑 GENERATE
 async function generate(){
+let k=makeKey();
+let type=document.getElementById("type").value;
+let exp=parse(document.getElementById("expire").value);
 
-let k = makeKey();
-let type = document.getElementById("type").value;
-let exp = parse(document.getElementById("expire").value);
-
-let res = await fetch(`${URL}/rest/v1/keys`,{
+let res=await fetch(`${URL}/rest/v1/keys`,{
 method:"POST",
 headers:{
 apikey:KEY,
@@ -84,72 +121,47 @@ Authorization:"Bearer "+KEY,
 "Content-Type":"application/json",
 Prefer:"return=representation"
 },
-body:JSON.stringify({
-key:k,
-used:false,
-type:type,
-expire_at:exp
-})
+body:JSON.stringify({key:k,type:type,used:false,expire_at:exp})
 });
 
-let data = await res.json();
+let data=await res.json();
 
-document.getElementById("status").innerText="Generated!";
-add(data[0]);
-}
-
-// add to UI
-function add(k){
 let d=document.createElement("div");
-d.innerHTML = `
-<b>${k.key}</b> (${k.type})
-<button onclick="del('${k.key}',this)">Delete</button>
-`;
+d.className="card";
+d.innerHTML=`${data[0].key} (${type})`;
 document.getElementById("list").prepend(d);
 }
 
-// delete
-async function del(k,el){
-await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
-method:"DELETE",
-headers:{apikey:KEY,Authorization:"Bearer "+KEY}
-});
-el.parentElement.remove();
-}
-
-// 🔐 LOGIN FIXED
+// 🔐 LOGIN
 async function login(){
 
-let k = document.getElementById("keyInput").value;
+let k=document.getElementById("keyInput").value;
 
-// admin
+// ADMIN
 if(k===ADMIN){
-open("priority");
+open("admin");
 return;
 }
 
-// fetch key
-let res = await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
+// CHECK DB
+let res=await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
 headers:{apikey:KEY,Authorization:"Bearer "+KEY}
 });
 
-let data = await res.json();
+let data=await res.json();
 
 if(data.length===0){
 document.getElementById("error").innerText="Invalid key";
 return;
 }
 
-let key = data[0];
+let key=data[0];
 
-// expired
+// expire
 if(key.expire_at && Date.now()>key.expire_at){
 document.getElementById("error").innerText="Expired";
 return;
 }
-
-// save type
-userType = key.type || "normal";
 
 // mark used
 await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
@@ -162,21 +174,41 @@ Authorization:"Bearer "+KEY,
 body:JSON.stringify({used:true})
 });
 
-// open dashboard
-open(userType);
+// OPEN BASED ON TYPE
+open(key.type);
 }
 
-// open dashboard
+// 🎯 OPEN SYSTEM
 function open(type){
+
 document.getElementById("login").style.display="none";
-document.getElementById("main").style.display="block";
+document.getElementById("dashboard-wrapper").style.display="block";
 
+// HIDE ALL FIRST
+document.getElementById("btn-prio").style.display="none";
+document.getElementById("btn-keys").style.display="none";
+
+// NORMAL USER
 if(type==="normal"){
-document.querySelector("button[onclick=\"show('prio')\"]").style.display="none";
-}
+show("normal");
 }
 
-// switch tabs
+// PRIORITY USER
+if(type==="priority"){
+document.getElementById("btn-prio").style.display="inline-block";
+show("normal");
+}
+
+// ADMIN
+if(type==="admin"){
+document.getElementById("btn-prio").style.display="inline-block";
+document.getElementById("btn-keys").style.display="inline-block";
+show("normal");
+}
+
+}
+
+// TABS
 function show(id){
 document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
 document.getElementById(id).classList.add("active");
