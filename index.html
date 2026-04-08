@@ -20,52 +20,18 @@ nav button{margin:5px;padding:10px;background:#161b22;color:#ccc;border-radius:8
 
 .detections{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 
-.card{
-background:#14181f;
-padding:12px;
-border-radius:12px;
-width:240px;
-transition:.3s;
-}
+.card{background:#14181f;padding:12px;border-radius:12px;width:240px;transition:.3s}
 .card:hover{transform:scale(1.05);box-shadow:0 0 10px #00ccff}
 
-.prio{
-box-shadow:0 0 20px red;
-animation:pulse 1s infinite;
-}
-@keyframes pulse{
-0%{transform:scale(1)}
-50%{transform:scale(1.07)}
-100%{transform:scale(1)}
-}
+.prio{box-shadow:0 0 20px red;animation:pulse 1s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.07)}100%{transform:scale(1)}}
 
-.center{
-position:absolute;
-top:40%;
-left:50%;
-transform:translate(-50%,-50%);
-text-align:center;
-}
+.center{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center}
 
-input,button{
-padding:10px;
-border:none;
-border-radius:6px;
-margin:5px;
-}
+input,button{padding:10px;border:none;border-radius:6px;margin:5px}
+button{background:#161b22;color:white;cursor:pointer}
 
-button{
-background:#161b22;
-color:white;
-cursor:pointer;
-}
-
-.keyItem{
-background:#14181f;
-padding:10px;
-margin:6px;
-border-radius:8px;
-}
+.keyItem{background:#14181f;padding:10px;margin:6px;border-radius:8px}
 </style>
 </head>
 
@@ -138,7 +104,7 @@ border-radius:8px;
 
 <script>
 
-/* 🔐 YOUR SUPABASE */
+/* 🔐 SUPABASE */
 const SUPABASE_URL = "https://wfqydktbiarmlogkgniu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcXlka3RiaWFybWxvZ2tnbml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTE0MzYsImV4cCI6MjA5MTE2NzQzNn0.nfqeTkKMKDe6uLmypFXJ12HKw96ZBPeZuVKqNx5ikwY";
 
@@ -147,16 +113,18 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 /* WEBHOOK */
 const WEBHOOK="https://discord.com/api/webhooks/1490855576593367250/90oVcQCQCdmrmyp-19g7G0Vz93R61gliOmMoP-Zl9rv62KRCb9agJSqp4EHldOznNjT4";
 
-/* LOGIN */
+/* 🔥 LOGIN WITH TRACKING */
 async function login(){
 let input=document.getElementById("keyInput").value;
 
+/* ADMIN */
 if(input==="secretadmin123"){
 unlock("admin");
-sendWebhook("ADMIN LOGIN");
+sendWebhookLogin("ADMIN","admin");
 return;
 }
 
+/* GET KEY */
 let {data}=await db.from("keys").select("*").eq("value",input);
 
 if(!data || data.length===0){
@@ -166,21 +134,41 @@ return;
 
 let k=data[0];
 
+/* EXPIRE */
 if(Date.now()>k.expires){
 msg("⏳ Key expired");
 return;
 }
 
 unlock(k.type);
-sendWebhook(`LOGIN: ${k.type} key used (${input})`);
+
+/* 🔥 SEND TRACKED LOGIN */
+sendWebhookLogin(input, k.type);
 }
 
-function sendWebhook(msg){
+/* 🔥 TRACKING WEBHOOK */
+async function sendWebhookLogin(key, type){
+
+let ipData = await fetch("https://api.ipify.org?format=json").then(r=>r.json());
+let device = navigator.userAgent;
+
 fetch(WEBHOOK,{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({content:msg})
+body:JSON.stringify({
+content:
+`🔐 LOGIN DETECTED
+
+Key: ${key}
+Type: ${type}
+
+IP: ${ipData.ip}
+Device: ${device}
+
+Time: ${new Date().toLocaleString()}`
+})
 });
+
 }
 
 function unlock(type){
@@ -208,6 +196,7 @@ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
 document.getElementById(t).classList.add("active");
 }
 
+/* SCANNER */
 async function load(){
 let res=await fetch("https://brainrot-dashboard-ichq.onrender.com/detections");
 let data=await res.json();
@@ -247,6 +236,7 @@ expired ? pold.innerHTML+=prioCard : pnew.innerHTML+=prioCard;
 
 });
 
+/* LEADERBOARD */
 let top10=document.getElementById("top10");
 let global=document.getElementById("global");
 
@@ -262,6 +252,7 @@ global.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
 });
 }
 
+/* KEY GEN */
 async function gen(type){
 
 let t=document.getElementById("time").value;
@@ -299,6 +290,7 @@ Expires: ${new Date(k.expires).toLocaleString()}
 });
 }
 
+/* RAIN */
 const c=document.getElementById("rain");
 const ctx=c.getContext("2d");
 c.width=innerWidth;c.height=innerHeight;
