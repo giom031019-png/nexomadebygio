@@ -5,210 +5,251 @@
 <title>🤡 Scanner Dashboard</title>
 
 <style>
-body{margin:0;background:#0b0f14;color:#e0e0e0;font-family:'Segoe UI'}
+body{
+margin:0;
+background:#0b0f14;
+color:#e0e0e0;
+font-family:'Segoe UI';
+overflow-x:hidden;
+}
 
-header{text-align:center;padding:20px;font-size:30px;color:#fff;text-shadow:0 0 15px #00ccff}
+/* HEADER */
+header{
+text-align:center;
+padding:20px;
+font-size:34px;
+color:#fff;
+text-shadow:0 0 20px #00ccff;
+}
 
-nav{display:flex;justify-content:center;gap:10px}
-nav button{padding:10px 18px;background:#161b22;border:none;border-radius:8px;color:#ccc;cursor:pointer}
-nav button:hover{background:#222}
+/* NAV */
+nav{
+display:flex;
+justify-content:center;
+gap:10px;
+}
 
-.tab{display:none;padding:15px}
+nav button{
+padding:10px 18px;
+background:#161b22;
+border:none;
+border-radius:8px;
+color:#ccc;
+cursor:pointer;
+transition:0.3s;
+}
+
+nav button:hover{
+transform:scale(1.1);
+box-shadow:0 0 15px #00ccff;
+color:white;
+}
+
+/* TABS */
+.tab{display:none;padding:15px;animation:fade 0.4s ease}
 .tab.active{display:block}
 
-#login{height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center}
-
-input{padding:10px;border-radius:6px;border:none;margin:5px}
-
-.glow{
-box-shadow:0 0 20px #00ccff;
-animation:glow 2s infinite alternate;
-}
-
-@keyframes glow{
-from{box-shadow:0 0 10px #00ccff}
-to{box-shadow:0 0 30px #00ccff}
-}
-
+/* CARDS */
 .card{
 background:#14181f;
-border-radius:10px;
+border-radius:12px;
+padding:12px;
+margin:10px;
+transition:0.3s;
+}
+
+.card:hover{
+transform:scale(1.03);
+box-shadow:0 0 15px #00ccff;
+}
+
+/* PRIORITY EFFECT */
+.prio{
+animation:prioGlow 1s infinite alternate;
+}
+
+@keyframes prioGlow{
+from{box-shadow:0 0 10px red}
+to{box-shadow:0 0 25px orange}
+}
+
+/* 100M INSANE */
+.insane{
+animation:insane 0.5s infinite;
+}
+
+@keyframes insane{
+0%{transform:scale(1)}
+50%{transform:scale(1.1)}
+100%{transform:scale(1)}
+}
+
+/* TEXT COLORS */
+.best{color:#00ffcc}
+.top{color:#ff4d4d}
+
+/* LEADERBOARD */
+.leaderboard{
+background:#14181f;
 padding:10px;
+border-radius:10px;
 margin:10px;
 }
 
-#dashboard-wrapper{display:none}
+h2{text-align:center;color:#00ccff}
+
+/* FADE */
+@keyframes fade{
+from{opacity:0;transform:translateY(10px)}
+to{opacity:1;transform:translateY(0)}
+}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-<h1>🔐 Enter Key</h1>
-<input id="keyInput">
-<button onclick="login()">Login</button>
-<p id="error"></p>
-</div>
-
-<!-- MAIN -->
-<div id="dashboard-wrapper">
-
 <header>🤡 Scanner Dashboard</header>
 
 <nav>
-<button id="btn-normal" onclick="show('normal')">Dashboard</button>
-<button id="btn-prio" onclick="show('prio')">Priority</button>
-<button id="btn-keys" onclick="show('keys')">Key Panel</button>
+<button onclick="show('normal')">Dashboard</button>
+<button onclick="show('prio')">Priority</button>
+<button onclick="show('leader')">Leaderboards</button>
+<button onclick="show('helpers')">Helpers</button>
 </nav>
 
+<!-- NORMAL -->
 <div id="normal" class="tab active">
-<h2>Normal Scanner</h2>
-<div class="card">Waiting for detections...</div>
+<h2>Normal Finds</h2>
+<div id="normal-list"></div>
 </div>
 
+<!-- PRIORITY -->
 <div id="prio" class="tab">
-<h2>🔥 Priority Scanner</h2>
-<div class="card glow">High value detections here...</div>
+<h2>🔥 Priority Finds</h2>
+<div id="prio-list"></div>
 </div>
 
-<div id="keys" class="tab">
-<h2>🔑 Key Generator</h2>
+<!-- LEADERBOARD -->
+<div id="leader" class="tab">
 
-<select id="type">
-<option value="normal">Normal</option>
-<option value="priority">Priority</option>
-</select>
-
-<input id="expire" placeholder="1h / 5h / 1m">
-
-<button onclick="generate()">Generate Key</button>
-
-<div id="list"></div>
+<div class="leaderboard">
+<h2>🏆 Top 10 Best Finds</h2>
+<ol id="top10"></ol>
 </div>
 
+<div class="leaderboard">
+<h2>🌍 Global Finds</h2>
+<ol id="global"></ol>
+</div>
+
+</div>
+
+<!-- HELPERS -->
+<div id="helpers" class="tab">
+<div class="card">
+<h2>👥 Team</h2>
+<p>creator - gioyuhh</p>
+<p>botter - gioyuhhh</p>
+<p>funder - maicodios</p>
+</div>
 </div>
 
 <script>
 
-const URL="https://wfqydktbiarmlogkgniu.supabase.co";
-const KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcXlka3RiaWFybWxvZ2tnbml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTE0MzYsImV4cCI6MjA5MTE2NzQzNn0.nfqeTkKMKDe6uLmypFXJ12HKw96ZBPeZuVKqNx5ikwY";
+/* DEMO DATA (replace later with real supabase) */
+let data = [
+{name:"Clown",gen:60000},
+{name:"RareX",gen:900000},
+{name:"BestOne",gen:2000000},
+{name:"Mega",gen:5000000},
+{name:"Ultra",gen:15000000},
+{name:"INSANE",gen:120000000}
+];
 
-const ADMIN="mysecretadmin123";
-
-function makeKey(){
-return "brainrot-"+Math.random().toString(36).substring(2,10);
+/* FORMAT */
+function format(n){
+if(n>=1e6)return (n/1e6).toFixed(1)+"M";
+if(n>=1e3)return (n/1e3).toFixed(1)+"K";
+return n;
 }
 
-function parse(t){
-if(!t)return null;
-let n=parseInt(t);
-if(t.includes("m"))return Date.now()+n*60000;
-if(t.includes("h"))return Date.now()+n*3600000;
+/* RENDER */
+function update(){
+
+let normal=document.getElementById("normal-list");
+let prio=document.getElementById("prio-list");
+
+normal.innerHTML="";
+prio.innerHTML="";
+
+/* SORT */
+let sorted=[...data].sort((a,b)=>b.gen-a.gen);
+
+/* LOOP */
+sorted.forEach(d=>{
+
+if(d.gen<50000)return;
+
+/* NORMAL */
+if(d.gen>=50000 && d.gen<2500000){
+
+let tag="";
+if(d.gen>=1000000) tag="<span class='best'>BEST</span>";
+
+normal.innerHTML+=`
+<div class="card">
+<h3>${d.name}</h3>
+<p>${format(d.gen)} ${tag}</p>
+</div>
+`;
+
 }
 
-// 🔑 GENERATE
-async function generate(){
-let k=makeKey();
-let type=document.getElementById("type").value;
-let exp=parse(document.getElementById("expire").value);
+/* PRIORITY */
+if(d.gen>=2500000){
 
-let res=await fetch(`${URL}/rest/v1/keys`,{
-method:"POST",
-headers:{
-apikey:KEY,
-Authorization:"Bearer "+KEY,
-"Content-Type":"application/json",
-Prefer:"return=representation"
-},
-body:JSON.stringify({key:k,type:type,used:false,expire_at:exp})
+let cls="card prio";
+let tag="";
+
+if(d.gen>=100000000){
+cls+=" insane";
+tag="<span class='top'>💀 100M+</span>";
+}else if(d.gen>=10000000){
+tag="<span class='top'>TOP PRIORITY</span>";
+}
+
+prio.innerHTML+=`
+<div class="${cls}">
+<h3>${d.name}</h3>
+<p>${format(d.gen)} ${tag}</p>
+</div>
+`;
+
+}
+
 });
 
-let data=await res.json();
+/* LEADERBOARDS */
+let top=document.getElementById("top10");
+let global=document.getElementById("global");
 
-let d=document.createElement("div");
-d.className="card";
-d.innerHTML=`${data[0].key} (${type})`;
-document.getElementById("list").prepend(d);
-}
+top.innerHTML="";
+global.innerHTML="";
 
-// 🔐 LOGIN
-async function login(){
-
-let k=document.getElementById("keyInput").value;
-
-// ADMIN
-if(k===ADMIN){
-open("admin");
-return;
-}
-
-// CHECK DB
-let res=await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
-headers:{apikey:KEY,Authorization:"Bearer "+KEY}
+sorted.slice(0,10).forEach(d=>{
+top.innerHTML+=`<li>${d.name} (${format(d.gen)})</li>`;
 });
 
-let data=await res.json();
-
-if(data.length===0){
-document.getElementById("error").innerText="Invalid key";
-return;
-}
-
-let key=data[0];
-
-// expire
-if(key.expire_at && Date.now()>key.expire_at){
-document.getElementById("error").innerText="Expired";
-return;
-}
-
-// mark used
-await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
-method:"PATCH",
-headers:{
-apikey:KEY,
-Authorization:"Bearer "+KEY,
-"Content-Type":"application/json"
-},
-body:JSON.stringify({used:true})
+sorted.forEach(d=>{
+global.innerHTML+=`<li>${d.name} (${format(d.gen)})</li>`;
 });
 
-// OPEN BASED ON TYPE
-open(key.type);
 }
 
-// 🎯 OPEN SYSTEM
-function open(type){
+/* LOOP */
+setInterval(update,1500);
 
-document.getElementById("login").style.display="none";
-document.getElementById("dashboard-wrapper").style.display="block";
-
-// HIDE ALL FIRST
-document.getElementById("btn-prio").style.display="none";
-document.getElementById("btn-keys").style.display="none";
-
-// NORMAL USER
-if(type==="normal"){
-show("normal");
-}
-
-// PRIORITY USER
-if(type==="priority"){
-document.getElementById("btn-prio").style.display="inline-block";
-show("normal");
-}
-
-// ADMIN
-if(type==="admin"){
-document.getElementById("btn-prio").style.display="inline-block";
-document.getElementById("btn-keys").style.display="inline-block";
-show("normal");
-}
-
-}
-
-// TABS
+/* TABS */
 function show(id){
 document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
 document.getElementById(id).classList.add("active");
