@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🤡 Scanner Final</title>
+<title>🤡 Scanner FINAL</title>
 
 <style>
 body{margin:0;font-family:Segoe UI;background:#0b0f14;color:#e0e0e0}
@@ -12,61 +12,24 @@ header{text-align:center;padding:20px;font-size:32px;text-shadow:0 0 15px #00ccf
 
 nav{display:flex;justify-content:center}
 nav button{margin:5px;padding:10px;background:#161b22;color:#ccc;border-radius:8px;cursor:pointer}
-nav button:hover{background:#222}
 
 .tab{display:none;padding:15px}
 .tab.active{display:block}
 
 .detections{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 
-.card{
-background:#14181f;
-padding:12px;
-border-radius:12px;
-width:240px;
-transition:.3s;
-}
+.card{background:#14181f;padding:12px;border-radius:12px;width:240px;transition:.3s}
 .card:hover{transform:scale(1.05);box-shadow:0 0 10px #00ccff}
 
-/* 🔥 PRIORITY EFFECT */
-.prio{
-box-shadow:0 0 20px red;
-animation:pulse 1s infinite;
-}
-@keyframes pulse{
-0%{transform:scale(1)}
-50%{transform:scale(1.07)}
-100%{transform:scale(1)}
-}
+.prio{box-shadow:0 0 20px red;animation:pulse 1s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.07)}100%{transform:scale(1)}}
 
-/* LOGIN */
-.center{
-position:absolute;
-top:40%;
-left:50%;
-transform:translate(-50%,-50%);
-text-align:center;
-}
+.center{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center}
 
-input,button{
-padding:10px;
-border:none;
-border-radius:6px;
-margin:5px;
-}
+input,button{padding:10px;border:none;border-radius:6px;margin:5px}
+button{background:#161b22;color:white;cursor:pointer}
 
-button{
-background:#161b22;
-color:white;
-cursor:pointer;
-}
-
-.keyItem{
-background:#14181f;
-padding:10px;
-margin:6px;
-border-radius:8px;
-}
+.keyItem{background:#14181f;padding:10px;margin:6px;border-radius:8px}
 </style>
 </head>
 
@@ -77,16 +40,16 @@ border-radius:8px;
 <!-- LOGIN -->
 <div id="login" class="center">
 <h1>🔐 Enter Key</h1>
-<input id="keyInput" placeholder="Enter key">
+<input id="keyInput">
 <br>
 <button onclick="login()">Access</button>
 <p id="msg"></p>
 </div>
 
-<!-- MAIN APP -->
+<!-- APP -->
 <div id="app" style="display:none">
 
-<header>🤡 Roba un Payaso Scanner</header>
+<header>🤡 Scanner</header>
 
 <nav>
 <button onclick="tab('dash')">Dashboard</button>
@@ -96,50 +59,33 @@ border-radius:8px;
 <button id="adminBtn" onclick="tab('admin')" style="display:none">Admin</button>
 </nav>
 
-<!-- DASHBOARD -->
 <div id="dash" class="tab active">
-<h2>New</h2>
-<div id="new" class="detections"></div>
-
-<h2>Old</h2>
-<div id="old" class="detections"></div>
+<h2>New</h2><div id="new" class="detections"></div>
+<h2>Old</h2><div id="old" class="detections"></div>
 </div>
 
-<!-- PRIORITY -->
 <div id="prio" class="tab">
-<h2>🔥 Priority Finds</h2>
-
-<h3>New</h3>
+<h2>🔥 Priority</h2>
 <div id="pnew" class="detections"></div>
-
-<h3>Old</h3>
 <div id="pold" class="detections"></div>
 </div>
 
-<!-- LEADERBOARD -->
 <div id="leader" class="tab">
-<h3>🏆 Top 10 Finds</h3>
-<ol id="top10"></ol>
-
-<h3>🌍 Global Finds</h3>
-<ol id="global"></ol>
+<h3>Top 10</h3><ol id="top10"></ol>
+<h3>Global</h3><ol id="global"></ol>
 </div>
 
-<!-- HELP -->
 <div id="help" class="tab">
-<center>
-creator - gioyuhh<br>
-botter - gioyuhhh<br>
-funder - maicodios
-</center>
+<center>gioyuhh • maico</center>
 </div>
 
-<!-- ADMIN PANEL -->
 <div id="admin" class="tab">
-<h2>🔑 Key Generator</h2>
+<h2>🔑 Key Panel</h2>
 
-<button onclick="gen('normal')">Generate Normal Key</button>
-<button onclick="gen('prio')">Generate Priority Key</button>
+<input id="time" placeholder="1m / 1h / 1d">
+<br>
+<button onclick="gen('normal')">Generate Normal</button>
+<button onclick="gen('prio')">Generate Priority</button>
 
 <div id="keys"></div>
 </div>
@@ -148,9 +94,12 @@ funder - maicodios
 
 <script>
 
-/* STORAGE INIT */
+/* WEBHOOK */
+const WEBHOOK="https://discord.com/api/webhooks/1490855576593367250/90oVcQCQCdmrmyp-19g7G0Vz93R61gliOmMoP-Zl9rv62KRCb9agJSqp4EHldOznNjT4";
+
+/* STORAGE */
 if(!localStorage.keys){
-localStorage.keys = JSON.stringify([]);
+localStorage.keys=JSON.stringify([]);
 }
 
 /* LOGIN */
@@ -160,6 +109,7 @@ let keys=JSON.parse(localStorage.keys);
 
 if(input==="secretadmin123"){
 unlock("admin");
+sendWebhook("ADMIN LOGIN");
 return;
 }
 
@@ -170,7 +120,23 @@ msg("❌ Invalid Key");
 return;
 }
 
+/* expiration check */
+if(Date.now()>found.expires){
+msg("⏳ Key expired");
+return;
+}
+
 unlock(found.type);
+sendWebhook(`User logged in with ${found.type} key: ${input}`);
+}
+
+/* WEBHOOK SEND */
+function sendWebhook(text){
+fetch(WEBHOOK,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({content:text})
+});
 }
 
 /* UNLOCK */
@@ -192,9 +158,7 @@ load();
 setInterval(load,3000);
 }
 
-function msg(t){
-document.getElementById("msg").innerText=t;
-}
+function msg(t){document.getElementById("msg").innerText=t}
 
 /* TABS */
 function tab(t){
@@ -204,7 +168,6 @@ document.getElementById(t).classList.add("active");
 
 /* SCANNER */
 async function load(){
-try{
 let res=await fetch("https://brainrot-dashboard-ichq.onrender.com/detections");
 let data=await res.json();
 
@@ -221,7 +184,6 @@ pold.innerHTML="";
 let sorted=data.detections.sort((a,b)=>b.gen-a.gen);
 
 sorted.forEach(d=>{
-
 if(d.gen<50000)return;
 
 let expired=(Date.now()-d.timestamp)/1000>60;
@@ -239,10 +201,9 @@ expired?pold.innerHTML+=card:pnew.innerHTML+=card;
 let card=`<div class="card">${base}</div>`;
 expired?oldC.innerHTML+=card:newC.innerHTML+=card;
 }
-
 });
 
-/* LEADERBOARD */
+/* leaderboard */
 let top10=document.getElementById("top10");
 let global=document.getElementById("global");
 
@@ -256,24 +217,34 @@ top10.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
 sorted.forEach(d=>{
 global.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
 });
-
-}catch(e){
-console.log("ERROR:",e);
-}
 }
 
-/* KEY SYSTEM */
+/* GENERATE KEY */
 function gen(type){
+
+let t=document.getElementById("time").value;
+if(!t)return alert("enter time");
+
+let ms=0;
+if(t.endsWith("m")) ms=parseInt(t)*60000;
+if(t.endsWith("h")) ms=parseInt(t)*3600000;
+if(t.endsWith("d")) ms=parseInt(t)*86400000;
+
 let key=Math.random().toString(36).substring(2,10);
 
 let keys=JSON.parse(localStorage.keys);
-keys.push({value:key,type:type});
+keys.push({
+value:key,
+type:type,
+expires:Date.now()+ms
+});
 localStorage.keys=JSON.stringify(keys);
 
-alert(`${type.toUpperCase()} KEY: ${key}`);
+alert(`${type} key: ${key}`);
 loadKeys();
 }
 
+/* LOAD KEYS */
 function loadKeys(){
 let keys=JSON.parse(localStorage.keys);
 let div=document.getElementById("keys");
@@ -282,13 +253,14 @@ div.innerHTML="";
 keys.forEach(k=>{
 div.innerHTML+=`
 <div class="keyItem">
-${k.value} (${k.type})
+${k.value} (${k.type})<br>
+Expires: ${new Date(k.expires).toLocaleString()}
 <button onclick="del('${k.value}')">Delete</button>
-</div>
-`;
+</div>`;
 });
 }
 
+/* DELETE */
 function del(k){
 let keys=JSON.parse(localStorage.keys);
 keys=keys.filter(x=>x.value!==k);
@@ -296,11 +268,10 @@ localStorage.keys=JSON.stringify(keys);
 loadKeys();
 }
 
-/* RAIN BACKGROUND */
+/* RAIN */
 const c=document.getElementById("rain");
 const ctx=c.getContext("2d");
-c.width=innerWidth;
-c.height=innerHeight;
+c.width=innerWidth;c.height=innerHeight;
 
 let drops=Array.from({length:200},()=>({x:Math.random()*c.width,y:Math.random()*c.height}));
 
