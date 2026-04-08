@@ -5,7 +5,7 @@
 <title>🤡 Scanner</title>
 
 <style>
-body{margin:0;font-family:Segoe UI;background:#0b0f14;color:#e0e0e0;overflow-x:hidden}
+body{margin:0;font-family:Segoe UI;background:#0b0f14;color:#e0e0e0}
 canvas{position:fixed;top:0;left:0;z-index:-1}
 
 header{text-align:center;padding:20px;font-size:30px;text-shadow:0 0 15px #00ccff}
@@ -23,19 +23,12 @@ nav button:hover{background:#222}
 .card:hover{transform:scale(1.05);box-shadow:0 0 10px #00ccff}
 
 .prio{box-shadow:0 0 10px red}
-.insane{animation:shake .5s infinite}
 
-@keyframes shake{
-0%{transform:translate(0)}
-50%{transform:translate(2px)}
-100%{transform:translate(0)}
-}
-
-input,button{padding:8px;border:none;border-radius:6px;margin:5px}
+input,button{padding:10px;border:none;border-radius:6px;margin:5px}
 button{background:#161b22;color:white;cursor:pointer}
 
 .keyItem{background:#14181f;padding:10px;margin:5px;border-radius:8px}
-
+.center{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center}
 </style>
 </head>
 
@@ -43,6 +36,16 @@ button{background:#161b22;color:white;cursor:pointer}
 
 <canvas id="rain"></canvas>
 
+<!-- LOGIN -->
+<div id="login" class="center">
+<h1>🔐 Enter Key</h1>
+<input id="keyInput" placeholder="Enter key">
+<br>
+<button onclick="login()">Access</button>
+<p id="msg"></p>
+</div>
+
+<!-- APP -->
 <div id="app" style="display:none">
 
 <header>🤡 Roba un Payaso Scanner</header>
@@ -52,26 +55,22 @@ button{background:#161b22;color:white;cursor:pointer}
 <button onclick="tab('prio')">Priority</button>
 <button onclick="tab('lead')">Leaderboard</button>
 <button onclick="tab('help')">Helpers</button>
-<button id="adminTab" onclick="tab('keys')" style="display:none">Keys</button>
+<button id="adminBtn" onclick="tab('admin')" style="display:none">Admin</button>
 </nav>
 
-<!-- DASH -->
 <div id="dash" class="tab active">
 <div id="list" class="detections"></div>
 </div>
 
-<!-- PRIO -->
 <div id="prio" class="tab">
 <div id="plist" class="detections"></div>
 </div>
 
-<!-- LEADER -->
 <div id="lead" class="tab">
 <h3>Top 10</h3>
 <ol id="top"></ol>
 </div>
 
-<!-- HELP -->
 <div id="help" class="tab">
 <center>
 creator - gioyuhh<br>
@@ -80,82 +79,79 @@ funder - maicodios
 </center>
 </div>
 
-<!-- KEY PANEL -->
-<div id="keys" class="tab">
+<!-- ADMIN PANEL -->
+<div id="admin" class="tab">
 <h2>🔑 Key Panel</h2>
 
-<input id="exp" placeholder="1h / 1d">
-<button onclick="gen()">Generate</button>
+<input id="expire" placeholder="minutes (ex: 60)">
+<button onclick="generateKey()">Generate Key</button>
 
-<div id="klist"></div>
+<div id="keys"></div>
 </div>
 
 </div>
 
 <script>
 
-/* CONFIG */
-const URL="https://wfqydktbiarmlogkgniu.supabase.co";
-const KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.nfqeTkKMKDe6uLmypFXJ12HKw96ZBPeZuVKqNx5ikwY";
+/* STORAGE */
+if(!localStorage.keys){
+localStorage.keys = JSON.stringify(["test123"]); // default key
+}
 
 /* LOGIN */
-window.onload=async()=>{
+function login(){
+let input=document.getElementById("keyInput").value;
+let keys=JSON.parse(localStorage.keys);
 
-let k=prompt("Enter key");
-if(!k) return;
+if(input==="secretadmin123"){
+unlock(true);
+return;
+}
 
-let res=await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
-headers:{apikey:KEY,Authorization:"Bearer "+KEY}
-});
+if(keys.includes(input)){
+unlock(false);
+}else{
+msg("❌ Invalid Key");
+}
+}
 
-let d=await res.json();
-if(!d.length) return deny();
+function unlock(admin){
+document.getElementById("login").style.display="none";
+document.getElementById("app").style.display="block";
 
-let key=d[0];
-
-if(Date.now()>key.expires_at) return deny();
-
-/* admin */
-if(key.role==="admin"){
-document.getElementById("adminTab").style.display="inline-block";
+if(admin){
+document.getElementById("adminBtn").style.display="inline-block";
 loadKeys();
 }
 
-document.getElementById("app").style.display="block";
 load();
 setInterval(load,3000);
+}
 
-};
-
-/* DENY */
-function deny(){
-document.body.innerHTML="<h1 style='text-align:center'>Invalid Key</h1>";
+function msg(t){
+document.getElementById("msg").innerText=t;
 }
 
 /* TABS */
-function tab(t){
-document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-document.getElementById(t).classList.add("active");
+function tab(id){
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
 /* SCANNER */
 async function load(){
-
 let res=await fetch("https://brainrot-dashboard-ichq.onrender.com/detections");
 let data=await res.json();
 
 let list=document.getElementById("list");
 let plist=document.getElementById("plist");
-
 list.innerHTML="";
 plist.innerHTML="";
 
-let sorted=[...data.detections].sort((a,b)=>b.gen-a.gen);
+let sorted=data.detections.sort((a,b)=>b.gen-a.gen);
 
-/* dashboard */
 sorted.forEach(d=>{
-
-if(d.gen<50000) return;
+if(d.gen<50000)return;
 
 let card=`<div class="card">
 <h3>${d.name}</h3>
@@ -167,7 +163,6 @@ plist.innerHTML+=card;
 }else{
 list.innerHTML+=card;
 }
-
 });
 
 /* leaderboard */
@@ -176,65 +171,42 @@ top.innerHTML="";
 sorted.slice(0,10).forEach(d=>{
 top.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
 });
-
 }
 
-/* KEY SYSTEM */
-async function gen(){
-
-let e=document.getElementById("exp").value;
-
-let ms=0;
-if(e.endsWith("h")) ms=parseInt(e)*3600000;
-if(e.endsWith("d")) ms=parseInt(e)*86400000;
+/* KEY PANEL */
+function generateKey(){
+let minutes=parseInt(document.getElementById("expire").value);
+if(!minutes)return alert("Enter minutes");
 
 let key=Math.random().toString(36).substring(2,10);
 
-await fetch(`${URL}/rest/v1/keys`,{
-method:"POST",
-headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json"},
-body:JSON.stringify({
-key:key,
-expires_at:Date.now()+ms,
-used_by:"",
-role:"user"
-})
-});
+let keys=JSON.parse(localStorage.keys);
+keys.push(key);
+localStorage.keys=JSON.stringify(keys);
 
-alert("Key: "+key);
+alert("Generated key: "+key);
 loadKeys();
-
 }
 
-async function loadKeys(){
-
-let res=await fetch(`${URL}/rest/v1/keys`,{
-headers:{apikey:KEY,Authorization:"Bearer "+KEY}
-});
-
-let data=await res.json();
-
-let div=document.getElementById("klist");
+function loadKeys(){
+let keys=JSON.parse(localStorage.keys);
+let div=document.getElementById("keys");
 div.innerHTML="";
 
-data.forEach(k=>{
+keys.forEach(k=>{
 div.innerHTML+=`
 <div class="keyItem">
-<p>${k.key}</p>
-<p>${new Date(k.expires_at).toLocaleString()}</p>
-<p>${k.used_by||"unused"}</p>
-<button onclick="del('${k.key}')">Delete</button>
+${k}
+<button onclick="deleteKey('${k}')">Delete</button>
 </div>
 `;
 });
-
 }
 
-async function del(k){
-await fetch(`${URL}/rest/v1/keys?key=eq.${k}`,{
-method:"DELETE",
-headers:{apikey:KEY,Authorization:"Bearer "+KEY}
-});
+function deleteKey(k){
+let keys=JSON.parse(localStorage.keys);
+keys=keys.filter(x=>x!==k);
+localStorage.keys=JSON.stringify(keys);
 loadKeys();
 }
 
