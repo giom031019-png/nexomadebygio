@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🤡 Scanner</title>
+<title>🤡 Scanner Final</title>
 
 <style>
 body{margin:0;font-family:Segoe UI;background:#0b0f14;color:#e0e0e0}
 canvas{position:fixed;top:0;left:0;z-index:-1}
 
-header{text-align:center;padding:20px;font-size:30px;text-shadow:0 0 15px #00ccff}
+header{text-align:center;padding:20px;font-size:32px;text-shadow:0 0 15px #00ccff}
 
 nav{display:flex;justify-content:center}
 nav button{margin:5px;padding:10px;background:#161b22;color:#ccc;border-radius:8px;cursor:pointer}
@@ -17,18 +17,56 @@ nav button:hover{background:#222}
 .tab{display:none;padding:15px}
 .tab.active{display:block}
 
-.detections{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.detections{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 
-.card{background:#14181f;padding:10px;border-radius:10px;width:230px;transition:.3s}
+.card{
+background:#14181f;
+padding:12px;
+border-radius:12px;
+width:240px;
+transition:.3s;
+}
 .card:hover{transform:scale(1.05);box-shadow:0 0 10px #00ccff}
 
-.prio{box-shadow:0 0 10px red}
+/* 🔥 PRIORITY EFFECT */
+.prio{
+box-shadow:0 0 20px red;
+animation:pulse 1s infinite;
+}
+@keyframes pulse{
+0%{transform:scale(1)}
+50%{transform:scale(1.07)}
+100%{transform:scale(1)}
+}
 
-input,button{padding:10px;border:none;border-radius:6px;margin:5px}
-button{background:#161b22;color:white;cursor:pointer}
+/* LOGIN */
+.center{
+position:absolute;
+top:40%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
+}
 
-.keyItem{background:#14181f;padding:10px;margin:5px;border-radius:8px}
-.center{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center}
+input,button{
+padding:10px;
+border:none;
+border-radius:6px;
+margin:5px;
+}
+
+button{
+background:#161b22;
+color:white;
+cursor:pointer;
+}
+
+.keyItem{
+background:#14181f;
+padding:10px;
+margin:6px;
+border-radius:8px;
+}
 </style>
 </head>
 
@@ -45,32 +83,49 @@ button{background:#161b22;color:white;cursor:pointer}
 <p id="msg"></p>
 </div>
 
-<!-- APP -->
+<!-- MAIN APP -->
 <div id="app" style="display:none">
 
 <header>🤡 Roba un Payaso Scanner</header>
 
 <nav>
 <button onclick="tab('dash')">Dashboard</button>
-<button onclick="tab('prio')">Priority</button>
-<button onclick="tab('lead')">Leaderboard</button>
+<button id="prioBtn" onclick="tab('prio')" style="display:none">Priority</button>
+<button onclick="tab('leader')">Leaderboard</button>
 <button onclick="tab('help')">Helpers</button>
 <button id="adminBtn" onclick="tab('admin')" style="display:none">Admin</button>
 </nav>
 
+<!-- DASHBOARD -->
 <div id="dash" class="tab active">
-<div id="list" class="detections"></div>
+<h2>New</h2>
+<div id="new" class="detections"></div>
+
+<h2>Old</h2>
+<div id="old" class="detections"></div>
 </div>
 
+<!-- PRIORITY -->
 <div id="prio" class="tab">
-<div id="plist" class="detections"></div>
+<h2>🔥 Priority Finds</h2>
+
+<h3>New</h3>
+<div id="pnew" class="detections"></div>
+
+<h3>Old</h3>
+<div id="pold" class="detections"></div>
 </div>
 
-<div id="lead" class="tab">
-<h3>Top 10</h3>
-<ol id="top"></ol>
+<!-- LEADERBOARD -->
+<div id="leader" class="tab">
+<h3>🏆 Top 10 Finds</h3>
+<ol id="top10"></ol>
+
+<h3>🌍 Global Finds</h3>
+<ol id="global"></ol>
 </div>
 
+<!-- HELP -->
 <div id="help" class="tab">
 <center>
 creator - gioyuhh<br>
@@ -81,10 +136,10 @@ funder - maicodios
 
 <!-- ADMIN PANEL -->
 <div id="admin" class="tab">
-<h2>🔑 Key Panel</h2>
+<h2>🔑 Key Generator</h2>
 
-<input id="expire" placeholder="minutes (ex: 60)">
-<button onclick="generateKey()">Generate Key</button>
+<button onclick="gen('normal')">Generate Normal Key</button>
+<button onclick="gen('prio')">Generate Priority Key</button>
 
 <div id="keys"></div>
 </div>
@@ -93,9 +148,9 @@ funder - maicodios
 
 <script>
 
-/* STORAGE */
+/* STORAGE INIT */
 if(!localStorage.keys){
-localStorage.keys = JSON.stringify(["test123"]); // default key
+localStorage.keys = JSON.stringify([]);
 }
 
 /* LOGIN */
@@ -104,24 +159,33 @@ let input=document.getElementById("keyInput").value;
 let keys=JSON.parse(localStorage.keys);
 
 if(input==="secretadmin123"){
-unlock(true);
+unlock("admin");
 return;
 }
 
-if(keys.includes(input)){
-unlock(false);
-}else{
+let found=keys.find(k=>k.value===input);
+
+if(!found){
 msg("❌ Invalid Key");
-}
+return;
 }
 
-function unlock(admin){
+unlock(found.type);
+}
+
+/* UNLOCK */
+function unlock(type){
 document.getElementById("login").style.display="none";
 document.getElementById("app").style.display="block";
 
-if(admin){
-document.getElementById("adminBtn").style.display="inline-block";
+if(type==="admin"){
+document.getElementById("adminBtn").style.display="inline";
+document.getElementById("prioBtn").style.display="inline";
 loadKeys();
+}
+
+if(type==="prio"){
+document.getElementById("prioBtn").style.display="inline";
 }
 
 load();
@@ -133,58 +197,80 @@ document.getElementById("msg").innerText=t;
 }
 
 /* TABS */
-function tab(id){
-document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-document.getElementById(id).classList.add("active");
+function tab(t){
+document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+document.getElementById(t).classList.add("active");
 }
 
 /* SCANNER */
 async function load(){
+try{
 let res=await fetch("https://brainrot-dashboard-ichq.onrender.com/detections");
 let data=await res.json();
 
-let list=document.getElementById("list");
-let plist=document.getElementById("plist");
-list.innerHTML="";
-plist.innerHTML="";
+let newC=document.getElementById("new");
+let oldC=document.getElementById("old");
+let pnew=document.getElementById("pnew");
+let pold=document.getElementById("pold");
+
+newC.innerHTML="";
+oldC.innerHTML="";
+pnew.innerHTML="";
+pold.innerHTML="";
 
 let sorted=data.detections.sort((a,b)=>b.gen-a.gen);
 
 sorted.forEach(d=>{
+
 if(d.gen<50000)return;
 
-let card=`<div class="card">
+let expired=(Date.now()-d.timestamp)/1000>60;
+
+let base=`
 <h3>${d.name}</h3>
 <p>${d.gen}</p>
-</div>`;
+${expired?"<p style='color:red'>Owner Left</p>":""}
+`;
 
 if(d.gen>10000000){
-plist.innerHTML+=card;
+let card=`<div class="card prio">${base}</div>`;
+expired?pold.innerHTML+=card:pnew.innerHTML+=card;
 }else{
-list.innerHTML+=card;
+let card=`<div class="card">${base}</div>`;
+expired?oldC.innerHTML+=card:newC.innerHTML+=card;
 }
+
 });
 
-/* leaderboard */
-let top=document.getElementById("top");
-top.innerHTML="";
+/* LEADERBOARD */
+let top10=document.getElementById("top10");
+let global=document.getElementById("global");
+
+top10.innerHTML="";
+global.innerHTML="";
+
 sorted.slice(0,10).forEach(d=>{
-top.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
+top10.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
 });
+
+sorted.forEach(d=>{
+global.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
+});
+
+}catch(e){
+console.log("ERROR:",e);
+}
 }
 
-/* KEY PANEL */
-function generateKey(){
-let minutes=parseInt(document.getElementById("expire").value);
-if(!minutes)return alert("Enter minutes");
-
+/* KEY SYSTEM */
+function gen(type){
 let key=Math.random().toString(36).substring(2,10);
 
 let keys=JSON.parse(localStorage.keys);
-keys.push(key);
+keys.push({value:key,type:type});
 localStorage.keys=JSON.stringify(keys);
 
-alert("Generated key: "+key);
+alert(`${type.toUpperCase()} KEY: ${key}`);
 loadKeys();
 }
 
@@ -196,24 +282,25 @@ div.innerHTML="";
 keys.forEach(k=>{
 div.innerHTML+=`
 <div class="keyItem">
-${k}
-<button onclick="deleteKey('${k}')">Delete</button>
+${k.value} (${k.type})
+<button onclick="del('${k.value}')">Delete</button>
 </div>
 `;
 });
 }
 
-function deleteKey(k){
+function del(k){
 let keys=JSON.parse(localStorage.keys);
-keys=keys.filter(x=>x!==k);
+keys=keys.filter(x=>x.value!==k);
 localStorage.keys=JSON.stringify(keys);
 loadKeys();
 }
 
-/* RAIN */
+/* RAIN BACKGROUND */
 const c=document.getElementById("rain");
 const ctx=c.getContext("2d");
-c.width=innerWidth;c.height=innerHeight;
+c.width=innerWidth;
+c.height=innerHeight;
 
 let drops=Array.from({length:200},()=>({x:Math.random()*c.width,y:Math.random()*c.height}));
 
