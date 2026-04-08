@@ -104,27 +104,23 @@ button{background:#161b22;color:white;cursor:pointer}
 
 <script>
 
-/* 🔐 SUPABASE */
 const SUPABASE_URL = "https://wfqydktbiarmlogkgniu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmcXlka3RiaWFybWxvZ2tnbml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTE0MzYsImV4cCI6MjA5MTE2NzQzNn0.nfqeTkKMKDe6uLmypFXJ12HKw96ZBPeZuVKqNx5ikwY";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* WEBHOOK */
 const WEBHOOK="https://discord.com/api/webhooks/1490855576593367250/90oVcQCQCdmrmyp-19g7G0Vz93R61gliOmMoP-Zl9rv62KRCb9agJSqp4EHldOznNjT4";
 
-/* 🔥 LOGIN WITH TRACKING */
+/* LOGIN */
 async function login(){
 let input=document.getElementById("keyInput").value;
 
-/* ADMIN */
 if(input==="secretadmin123"){
 unlock("admin");
 sendWebhookLogin("ADMIN","admin");
 return;
 }
 
-/* GET KEY */
 let {data}=await db.from("keys").select("*").eq("value",input);
 
 if(!data || data.length===0){
@@ -134,21 +130,17 @@ return;
 
 let k=data[0];
 
-/* EXPIRE */
 if(Date.now()>k.expires){
 msg("⏳ Key expired");
 return;
 }
 
 unlock(k.type);
-
-/* 🔥 SEND TRACKED LOGIN */
 sendWebhookLogin(input, k.type);
 }
 
-/* 🔥 TRACKING WEBHOOK */
+/* WEBHOOK */
 async function sendWebhookLogin(key, type){
-
 let ipData = await fetch("https://api.ipify.org?format=json").then(r=>r.json());
 let device = navigator.userAgent;
 
@@ -156,19 +148,9 @@ fetch(WEBHOOK,{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
-content:
-`🔐 LOGIN DETECTED
-
-Key: ${key}
-Type: ${type}
-
-IP: ${ipData.ip}
-Device: ${device}
-
-Time: ${new Date().toLocaleString()}`
+content:`🔐 LOGIN\nKey: ${key}\nType: ${type}\nIP: ${ipData.ip}\nDevice: ${device}`
 })
 });
-
 }
 
 function unlock(type){
@@ -196,6 +178,47 @@ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
 document.getElementById(t).classList.add("active");
 }
 
+/* DELETE KEY */
+async function deleteKey(value){
+await db.from("keys").delete().eq("value", value);
+loadKeys();
+}
+
+/* LOAD KEYS */
+async function loadKeys(){
+let {data}=await db.from("keys").select("*");
+
+let div=document.getElementById("keys");
+div.innerHTML="";
+
+data.forEach(k=>{
+div.innerHTML+=`
+<div class="keyItem">
+${k.value} (${k.type})<br>
+Expires: ${new Date(k.expires).toLocaleString()}
+<br>
+<button onclick="deleteKey('${k.value}')">Delete</button>
+</div>`;
+});
+}
+
+/* GENERATE */
+async function gen(type){
+let t=document.getElementById("time").value;
+
+let ms=0;
+if(t.endsWith("m")) ms=parseInt(t)*60000;
+if(t.endsWith("h")) ms=parseInt(t)*3600000;
+if(t.endsWith("d")) ms=parseInt(t)*86400000;
+
+let key=Math.random().toString(36).substring(2,10);
+
+await db.from("keys").insert([{value:key,type:type,expires:Date.now()+ms}]);
+
+alert(key);
+loadKeys();
+}
+
 /* SCANNER */
 async function load(){
 let res=await fetch("https://brainrot-dashboard-ichq.onrender.com/detections");
@@ -211,82 +234,23 @@ oldC.innerHTML="";
 pnew.innerHTML="";
 pold.innerHTML="";
 
-let sorted=data.detections.sort((a,b)=>b.gen-a.gen);
-
-sorted.forEach(d=>{
-
+data.detections.forEach(d=>{
 if(d.gen<50000)return;
 
 let expired=(Date.now()-d.timestamp)/1000>60;
 let isPrio=d.gen>10000000;
 
-let base=`
+let html=`<div class="card ${isPrio?"prio":""}">
 <h3>${d.name}</h3>
 <p>${d.gen}</p>
 ${expired?"<p style='color:red'>Owner Left</p>":""}
-`;
-
-let normalCard=`<div class="card">${base}</div>`;
-expired ? oldC.innerHTML+=normalCard : newC.innerHTML+=normalCard;
+</div>`;
 
 if(isPrio){
-let prioCard=`<div class="card prio">${base}</div>`;
-expired ? pold.innerHTML+=prioCard : pnew.innerHTML+=prioCard;
+expired?pold.innerHTML+=html:pnew.innerHTML+=html;
+}else{
+expired?oldC.innerHTML+=html:newC.innerHTML+=html;
 }
-
-});
-
-/* LEADERBOARD */
-let top10=document.getElementById("top10");
-let global=document.getElementById("global");
-
-top10.innerHTML="";
-global.innerHTML="";
-
-sorted.slice(0,10).forEach(d=>{
-top10.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
-});
-
-sorted.forEach(d=>{
-global.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
-});
-}
-
-/* KEY GEN */
-async function gen(type){
-
-let t=document.getElementById("time").value;
-if(!t)return alert("Enter time");
-
-let ms=0;
-if(t.endsWith("m")) ms=parseInt(t)*60000;
-if(t.endsWith("h")) ms=parseInt(t)*3600000;
-if(t.endsWith("d")) ms=parseInt(t)*86400000;
-
-let key=Math.random().toString(36).substring(2,10);
-
-await db.from("keys").insert([{
-value:key,
-type:type,
-expires:Date.now()+ms
-}]);
-
-alert(`${type} key: ${key}`);
-loadKeys();
-}
-
-async function loadKeys(){
-let {data}=await db.from("keys").select("*");
-
-let div=document.getElementById("keys");
-div.innerHTML="";
-
-data.forEach(k=>{
-div.innerHTML+=`
-<div class="keyItem">
-${k.value} (${k.type})<br>
-Expires: ${new Date(k.expires).toLocaleString()}
-</div>`;
 });
 }
 
