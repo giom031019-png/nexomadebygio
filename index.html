@@ -64,9 +64,7 @@ cursor:pointer;
 margin-top:5px;
 }
 
-.used{color:red}
-.activeKey{color:#00ffcc}
-.expired{color:orange}
+#status{margin-top:10px;font-size:14px}
 
 #login-screen{
 display:flex;
@@ -119,6 +117,8 @@ border:none;
 
 <button onclick="generateKey()">Generate Key</button>
 
+<div id="status"></div>
+
 <div id="key-list" class="key-list"></div>
 
 </div>
@@ -133,10 +133,12 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const ADMIN_KEY = "mysecretadmin123";
 
+// 🔑 create key
 function createKey(){
 return "brainrot-" + Math.random().toString(36).substring(2,10).toUpperCase();
 }
 
+// ⏱️ expiration
 function parseExpire(input){
 if(!input) return null;
 let num = parseInt(input);
@@ -145,7 +147,13 @@ if(input.includes("h")) return Date.now()+num*3600000;
 return null;
 }
 
+// 🔥 GENERATE KEY (FIXED)
 async function generateKey(){
+const status = document.getElementById("status");
+status.innerText = "Generating...";
+
+try{
+
 const key = createKey();
 const expire = parseExpire(document.getElementById("expireInput").value);
 
@@ -165,14 +173,33 @@ expire_at:expire
 })
 });
 
-const data = await res.json();
-
-// 🔥 INSTANT ADD TO UI
-addKeyToList(data[0]);
-
+if(!res.ok){
+const err = await res.text();
+status.innerText = "❌ ERROR: " + err;
+console.error(err);
+return;
 }
 
-function addKeyToList(k){
+const data = await res.json();
+
+if(!data || !data[0]){
+status.innerText = "❌ No data returned (check RLS)";
+return;
+}
+
+// ✅ ADD TO UI
+addKey(data[0]);
+
+status.innerText = "✅ Key Generated!";
+
+}catch(e){
+status.innerText = "❌ " + e.message;
+console.error(e);
+}
+}
+
+// ➕ ADD KEY TO LIST
+function addKey(k){
 const list = document.getElementById("key-list");
 
 const div = document.createElement("div");
@@ -181,7 +208,6 @@ div.className="key-item";
 div.innerHTML=`
 <b>${k.key}</b><br>
 Status: ACTIVE<br>
-HWID: None<br>
 Expires: ${k.expire_at ? new Date(k.expire_at).toLocaleString() : "Never"}
 <br>
 <button class="delete-btn" onclick="deleteKey('${k.key}', this)">Delete</button>
@@ -190,6 +216,7 @@ Expires: ${k.expire_at ? new Date(k.expire_at).toLocaleString() : "Never"}
 list.prepend(div);
 }
 
+// ❌ DELETE
 async function deleteKey(key, btn){
 await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${key}`,{
 method:"DELETE",
@@ -201,6 +228,7 @@ headers:{
 btn.parentElement.remove();
 }
 
+// 🔐 LOGIN
 async function login(){
 const key = document.getElementById("keyInput").value;
 
@@ -210,48 +238,7 @@ document.getElementById("dashboard-wrapper").style.display="block";
 return;
 }
 
-const hwid = await fetch("https://api.ipify.org?format=json")
-.then(r=>r.json()).then(d=>d.ip);
-
-const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${key}`,{
-headers:{
-"apikey":SUPABASE_KEY,
-"Authorization":"Bearer "+SUPABASE_KEY
-}
-});
-
-const data = await res.json();
-
-if(data.length>0){
-
-const k=data[0];
-
-if(k.expire_at && Date.now()>k.expire_at){
-document.getElementById("error").innerText="Expired!";
-return;
-}
-
-if(k.hwid && k.hwid!==hwid){
-document.getElementById("error").innerText="HWID locked!";
-return;
-}
-
-await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${key}`,{
-method:"PATCH",
-headers:{
-"apikey":SUPABASE_KEY,
-"Authorization":"Bearer "+SUPABASE_KEY,
-"Content-Type":"application/json"
-},
-body: JSON.stringify({used:true,hwid:hwid})
-});
-
-document.getElementById("login-screen").style.display="none";
-document.getElementById("dashboard-wrapper").style.display="block";
-
-}else{
-document.getElementById("error").innerText="Invalid key!";
-}
+document.getElementById("error").innerText="Invalid key";
 }
 
 function showTab(id){
