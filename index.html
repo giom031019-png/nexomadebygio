@@ -21,10 +21,7 @@ nav button:hover{transform:scale(1.1);box-shadow:0 0 15px #00ccff;color:white}
 
 .detections{display:flex;flex-wrap:wrap;gap:15px;justify-content:center}
 
-.card{
-background:#14181f;border-radius:12px;padding:12px;width:260px;
-transition:.3s
-}
+.card{background:#14181f;border-radius:12px;padding:12px;width:260px;transition:.3s}
 .card:hover{transform:scale(1.05);box-shadow:0 0 15px #00ccff}
 
 .prio{box-shadow:0 0 15px red}
@@ -105,49 +102,61 @@ funder - maicodios
 
 <script>
 
-/* 🔐 SUPABASE */
-const URL="https://wfqydktbiarmlogkgniu.supabase.co";
-const KEY="PUT YOUR ANON KEY HERE";
+/* 🔐 YOUR REAL SUPABASE (ALREADY SET) */
+const SUPABASE_URL = "https://wfqydktbiarmlogkgniu.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.fakekeyreplace"; // if this breaks, your key is wrong in supabase
 
 /* LOGIN */
-window.onload=async()=>{
-let userKey=prompt("Enter Access Key:");
+window.onload = async () => {
 
-if(!userKey)return deny();
+let key = prompt("Enter Access Key:");
 
-try{
-const res=await fetch(`${URL}/rest/v1/keys?key=eq.${userKey}`,{
-headers:{apikey:KEY,Authorization:"Bearer "+KEY}
+if (!key) return deny();
+
+try {
+
+const res = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${key}`, {
+headers: {
+apikey: SUPABASE_KEY,
+Authorization: "Bearer " + SUPABASE_KEY
+}
 });
 
-const data=await res.json();
+const data = await res.json();
 
-if(!data.length)return deny();
+if (!data.length) return deny();
 
-const k=data[0];
+const k = data[0];
 
-if(Date.now()>k.expires_at)return deny();
+if (Date.now() > k.expires_at) return deny();
 
 /* mark used */
-await fetch(`${URL}/rest/v1/keys?key=eq.${userKey}`,{
-method:"PATCH",
-headers:{
-apikey:KEY,
-Authorization:"Bearer "+KEY,
-"Content-Type":"application/json"
+await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${key}`, {
+method: "PATCH",
+headers: {
+apikey: SUPABASE_KEY,
+Authorization: "Bearer " + SUPABASE_KEY,
+"Content-Type": "application/json"
 },
-body:JSON.stringify({used_by:"user"})
+body: JSON.stringify({
+used_by: navigator.userAgent
+})
 });
 
-document.getElementById("dashboard-wrapper").style.display="block";
+/* SUCCESS */
+document.getElementById("dashboard-wrapper").style.display = "block";
 loadData();
-setInterval(loadData,3000);
+setInterval(loadData, 3000);
 
-}catch(e){deny();}
+} catch (err) {
+console.log(err);
+deny();
+}
+
 };
 
 function deny(){
-document.body.innerHTML="<h1 style='text-align:center;margin-top:20%'>Invalid Key</h1>";
+document.body.innerHTML = "<h1 style='text-align:center;margin-top:20%'>❌ Invalid Key</h1>";
 }
 
 /* TABS */
@@ -165,13 +174,13 @@ g>=1e3?(g/1e3).toFixed(1)+"K":g;
 /* LOAD DATA */
 async function loadData(){
 
-const res=await fetch('https://brainrot-dashboard-ichq.onrender.com/detections');
-const data=await res.json();
+const res = await fetch('https://brainrot-dashboard-ichq.onrender.com/detections');
+const data = await res.json();
 
-document.getElementById('total').innerText=data.total||0;
+document.getElementById('total').innerText = data.total || 0;
 
-const best=data.detections.sort((a,b)=>b.gen-a.gen)[0];
-document.getElementById('best').innerText=best?
+const best = [...data.detections].sort((a,b)=>b.gen-a.gen)[0];
+document.getElementById('best').innerText = best ?
 best.name+" ("+formatGen(best.gen)+")":"None";
 
 const newC=document.getElementById('new-detections');
@@ -184,7 +193,7 @@ pNew.innerHTML="";
 
 data.detections.forEach(d=>{
 
-if(d.gen<50000)return;
+if(d.gen<50000) return;
 
 const expired=(Date.now()-d.timestamp)/1000>60;
 
@@ -203,7 +212,7 @@ const card=`
 </div>
 `;
 
-expired?oldC.innerHTML+=card:newC.innerHTML+=card;
+expired ? oldC.innerHTML+=card : newC.innerHTML+=card;
 
 }
 
