@@ -18,18 +18,52 @@ nav button{margin:5px;padding:10px;background:#161b22;color:#ccc;border-radius:8
 
 .detections{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 
-.card{background:#14181f;padding:12px;border-radius:12px;width:240px;transition:.3s}
+.card{
+background:#14181f;
+padding:12px;
+border-radius:12px;
+width:240px;
+transition:.3s;
+}
 .card:hover{transform:scale(1.05);box-shadow:0 0 10px #00ccff}
 
-.prio{box-shadow:0 0 20px red;animation:pulse 1s infinite}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.07)}100%{transform:scale(1)}}
+.prio{
+box-shadow:0 0 20px red;
+animation:pulse 1s infinite;
+}
+@keyframes pulse{
+0%{transform:scale(1)}
+50%{transform:scale(1.07)}
+100%{transform:scale(1)}
+}
 
-.center{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.center{
+position:absolute;
+top:40%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
+}
 
-input,button{padding:10px;border:none;border-radius:6px;margin:5px}
-button{background:#161b22;color:white;cursor:pointer}
+input,button{
+padding:10px;
+border:none;
+border-radius:6px;
+margin:5px;
+}
 
-.keyItem{background:#14181f;padding:10px;margin:6px;border-radius:8px}
+button{
+background:#161b22;
+color:white;
+cursor:pointer;
+}
+
+.keyItem{
+background:#14181f;
+padding:10px;
+margin:6px;
+border-radius:8px;
+}
 </style>
 </head>
 
@@ -49,7 +83,7 @@ button{background:#161b22;color:white;cursor:pointer}
 <!-- APP -->
 <div id="app" style="display:none">
 
-<header>🤡 Scanner</header>
+<header>🤡 Roba un Payaso Scanner</header>
 
 <nav>
 <button onclick="tab('dash')">Dashboard</button>
@@ -59,26 +93,45 @@ button{background:#161b22;color:white;cursor:pointer}
 <button id="adminBtn" onclick="tab('admin')" style="display:none">Admin</button>
 </nav>
 
+<!-- DASHBOARD -->
 <div id="dash" class="tab active">
-<h2>New</h2><div id="new" class="detections"></div>
-<h2>Old</h2><div id="old" class="detections"></div>
+<h2>New Detections</h2>
+<div id="new" class="detections"></div>
+
+<h2>Old Detections</h2>
+<div id="old" class="detections"></div>
 </div>
 
+<!-- PRIORITY -->
 <div id="prio" class="tab">
-<h2>🔥 Priority</h2>
+<h2>🔥 Priority Detections</h2>
+
+<h3>New Detections</h3>
 <div id="pnew" class="detections"></div>
+
+<h3>Old Detections</h3>
 <div id="pold" class="detections"></div>
 </div>
 
+<!-- LEADERBOARD -->
 <div id="leader" class="tab">
-<h3>Top 10</h3><ol id="top10"></ol>
-<h3>Global</h3><ol id="global"></ol>
+<h3>🏆 Top 10 Finds</h3>
+<ol id="top10"></ol>
+
+<h3>🌍 Global Finds</h3>
+<ol id="global"></ol>
 </div>
 
+<!-- HELP -->
 <div id="help" class="tab">
-<center>gioyuhh • maico</center>
+<center>
+creator - gioyuhh<br>
+botter - gioyuhhh<br>
+funder - maicodios
+</center>
 </div>
 
+<!-- ADMIN -->
 <div id="admin" class="tab">
 <h2>🔑 Key Panel</h2>
 
@@ -120,22 +173,21 @@ msg("❌ Invalid Key");
 return;
 }
 
-/* expiration check */
 if(Date.now()>found.expires){
 msg("⏳ Key expired");
 return;
 }
 
 unlock(found.type);
-sendWebhook(`User logged in with ${found.type} key: ${input}`);
+sendWebhook(`LOGIN: ${found.type} key used (${input})`);
 }
 
-/* WEBHOOK SEND */
-function sendWebhook(text){
+/* WEBHOOK */
+function sendWebhook(msg){
 fetch(WEBHOOK,{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({content:text})
+body:JSON.stringify({content:msg})
 });
 }
 
@@ -184,26 +236,31 @@ pold.innerHTML="";
 let sorted=data.detections.sort((a,b)=>b.gen-a.gen);
 
 sorted.forEach(d=>{
-if(d.gen<50000)return;
 
-let expired=(Date.now()-d.timestamp)/1000>60;
+if(d.gen < 50000) return;
 
-let base=`
+let expired = (Date.now()-d.timestamp)/1000 > 60;
+let isPrio = d.gen > 10000000;
+
+let base = `
 <h3>${d.name}</h3>
 <p>${d.gen}</p>
 ${expired?"<p style='color:red'>Owner Left</p>":""}
 `;
 
-if(d.gen>10000000){
-let card=`<div class="card prio">${base}</div>`;
-expired?pold.innerHTML+=card:pnew.innerHTML+=card;
-}else{
-let card=`<div class="card">${base}</div>`;
-expired?oldC.innerHTML+=card:newC.innerHTML+=card;
+/* NORMAL */
+let normalCard = `<div class="card">${base}</div>`;
+expired ? oldC.innerHTML += normalCard : newC.innerHTML += normalCard;
+
+/* PRIORITY */
+if(isPrio){
+let prioCard = `<div class="card prio">${base}</div>`;
+expired ? pold.innerHTML += prioCard : pnew.innerHTML += prioCard;
 }
+
 });
 
-/* leaderboard */
+/* LEADERBOARD */
 let top10=document.getElementById("top10");
 let global=document.getElementById("global");
 
@@ -219,11 +276,10 @@ global.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
 });
 }
 
-/* GENERATE KEY */
+/* KEY GEN */
 function gen(type){
-
 let t=document.getElementById("time").value;
-if(!t)return alert("enter time");
+if(!t)return alert("Enter time");
 
 let ms=0;
 if(t.endsWith("m")) ms=parseInt(t)*60000;
@@ -238,13 +294,13 @@ value:key,
 type:type,
 expires:Date.now()+ms
 });
+
 localStorage.keys=JSON.stringify(keys);
 
 alert(`${type} key: ${key}`);
 loadKeys();
 }
 
-/* LOAD KEYS */
 function loadKeys(){
 let keys=JSON.parse(localStorage.keys);
 let div=document.getElementById("keys");
@@ -260,7 +316,6 @@ Expires: ${new Date(k.expires).toLocaleString()}
 });
 }
 
-/* DELETE */
 function del(k){
 let keys=JSON.parse(localStorage.keys);
 keys=keys.filter(x=>x.value!==k);
