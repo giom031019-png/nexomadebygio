@@ -39,6 +39,7 @@ button{background:#161b22;color:white;cursor:pointer}
 
 <canvas id="rain"></canvas>
 
+<!-- LOGIN -->
 <div id="login" class="center">
 <h1>🔐 Enter Key</h1>
 <input id="keyInput">
@@ -47,6 +48,7 @@ button{background:#161b22;color:white;cursor:pointer}
 <p id="msg"></p>
 </div>
 
+<!-- APP -->
 <div id="app" style="display:none">
 
 <header>🤡 Scanner</header>
@@ -66,8 +68,8 @@ button{background:#161b22;color:white;cursor:pointer}
 
 <div id="prio" class="tab">
 <h2>🔥 Priority</h2>
-<h3>New</h3><div id="pnew" class="detections"></div>
-<h3>Old</h3><div id="pold" class="detections"></div>
+<div id="pnew" class="detections"></div>
+<div id="pold" class="detections"></div>
 </div>
 
 <div id="leader" class="tab">
@@ -94,14 +96,15 @@ button{background:#161b22;color:white;cursor:pointer}
 
 <script>
 
+/* CONFIG */
 const SUPABASE_URL = "https://wfqydktbiarmlogkgniu.supabase.co";
 const SUPABASE_KEY = "YOUR_ANON_KEY";
-
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const WEBHOOK="YOUR_WEBHOOK";
+// 🔥 RENDER API
+const API = "https://finaldetection.onrender.com/detections";
 
-/* LOGIN (UNCHANGED) */
+/* LOGIN */
 async function login(){
 let input=document.getElementById("keyInput").value;
 
@@ -112,21 +115,20 @@ return;
 
 let {data}=await db.from("keys").select("*").eq("value",input);
 
-if(!data || data.length===0){
+if(!data.length){
 msg("❌ Invalid Key");
 return;
 }
 
-let k=data[0];
-
-if(Date.now()>k.expires){
+if(Date.now()>data[0].expires){
 msg("⏳ Key expired");
 return;
 }
 
-unlock(k.type);
+unlock(data[0].type);
 }
 
+/* UNLOCK */
 function unlock(type){
 document.getElementById("login").style.display="none";
 document.getElementById("app").style.display="block";
@@ -142,11 +144,12 @@ document.getElementById("prioBtn").style.display="inline";
 }
 
 load();
-setInterval(load,3000);
+setInterval(load,2000);
 }
 
 function msg(t){document.getElementById("msg").innerText=t}
 
+/* TABS */
 function tab(t){
 document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
 document.getElementById(t).classList.add("active");
@@ -155,18 +158,18 @@ document.getElementById(t).classList.add("active");
 /* COPY + JOIN */
 function copyJob(id){
 navigator.clipboard.writeText(id);
-alert("Copied JobId: " + id);
+alert("Copied JobId: "+id);
 }
 
-function joinServer(jobId){
-let placeId = 86754403332185;
-let url = `https://www.roblox.com/games/${placeId}?jobId=${jobId}`;
-window.open(url, "_blank");
+function joinServer(id){
+window.open(`https://www.roblox.com/games/86754403332185?jobId=${id}`);
 }
 
 /* LOAD DETECTIONS */
 async function load(){
-let {data}=await db.from("detections").select("*");
+let res=await fetch(API);
+let json=await res.json();
+let data=json.detections;
 
 let newC=document.getElementById("new");
 let oldC=document.getElementById("old");
@@ -180,26 +183,42 @@ pold.innerHTML="";
 
 data.sort((a,b)=>b.gen-a.gen);
 
+/* leaderboard */
+let top10=document.getElementById("top10");
+let global=document.getElementById("global");
+top10.innerHTML="";
+global.innerHTML="";
+
+data.slice(0,10).forEach(d=>{
+top10.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
+});
+data.forEach(d=>{
+global.innerHTML+=`<li>${d.name} (${d.gen})</li>`;
+});
+
+/* cards */
 data.forEach(d=>{
 if(d.gen<50000)return;
 
 let expired=(Date.now()-d.timestamp)/1000>60;
 let isPrio=d.gen>10000000;
 
-let html=`<div class="card ${isPrio?"prio":""}">
+let card=`
+<div class="card ${isPrio?"prio":""}">
 <h3>${d.name}</h3>
 <p>${d.gen}</p>
 
-<button onclick="copyJob('${d.server}')">📋 Copy JobId</button>
+<button onclick="copyJob('${d.server}')">📋 Copy</button>
 <button onclick="joinServer('${d.server}')">🚀 Join</button>
 
 ${expired?"<p style='color:red'>Owner Left</p>":""}
-</div>`;
+</div>
+`;
 
 if(isPrio){
-expired?pold.innerHTML+=html:pnew.innerHTML+=html;
+expired?pold.innerHTML+=card:pnew.innerHTML+=card;
 }else{
-expired?oldC.innerHTML+=html:newC.innerHTML+=html;
+expired?oldC.innerHTML+=card:newC.innerHTML+=card;
 }
 });
 }
@@ -215,6 +234,7 @@ div.innerHTML+=`
 <div class="keyItem">
 ${k.value} (${k.type})<br>
 Expires: ${new Date(k.expires).toLocaleString()}
+<button onclick="delKey('${k.value}')">Delete</button>
 </div>`;
 });
 }
@@ -231,7 +251,12 @@ let key=Math.random().toString(36).substring(2,10);
 
 await db.from("keys").insert([{value:key,type:type,expires:Date.now()+ms}]);
 
-alert(key);
+alert(`${type} key: ${key}`);
+loadKeys();
+}
+
+async function delKey(val){
+await db.from("keys").delete().eq("value",val);
 loadKeys();
 }
 
